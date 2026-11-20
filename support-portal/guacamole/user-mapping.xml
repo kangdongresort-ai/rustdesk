@@ -1,0 +1,23 @@
+<!--
+  Technician accounts for https://<PORTAL_DOMAIN>/guacamole/
+  Each connection opens the desktop of a spare Windows PC (with RustDesk
+  installed and pointed at the same server) over RDP, inside the browser.
+
+  CHANGE THE PASSWORDS before exposing this to the internet.
+  password can be a plain value or an md5 hash: password="<md5>" encoding="md5"
+-->
+<user-mapping>
+    <authorize username="tech1" password="change-me-please">
+        <connection name="원격지원 작업PC">
+            <protocol>rdp</protocol>
+            <param name="hostname">192.168.0.50</param>
+            <param name="port">3389</param>
+            <param name="username">support</param>
+            <param name="password">windows-password</param>
+            <param name="ignore-cert">true</param>
+            <param name="security">any</param>
+            <param name="resize-method">display-update</param>
+            <param name="enable-wallpaper">false</param>
+        </connection>
+    </authorize>
+</user-mapping>

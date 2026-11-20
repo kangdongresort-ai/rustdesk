@@ -1,0 +1,11 @@
+{$PORTAL_DOMAIN} {
+	encode gzip
+
+	handle /guacamole* {
+		reverse_proxy guacamole:8080
+	}
+
+	handle {
+		reverse_proxy portal:8080
+	}
+}

@@ -1,0 +1,89 @@
+# Self-hosted RustDesk remote-support portal.
+#
+#   docker compose up -d                       # hbbs + hbbr + portal + HTTPS
+#   docker compose --profile guacamole up -d   # + browser access for technicians
+#
+# Copy .env.example to .env and edit it first.
+
+services:
+  hbbs:
+    image: rustdesk/rustdesk-server:latest
+    command: hbbs -r ${RUSTDESK_HOST}:21117
+    volumes:
+      - ./data:/root
+    ports:
+      - "21115:21115"
+      - "21116:21116"
+      - "21116:21116/udp"
+      - "21118:21118"
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+
+  hbbr:
+    image: rustdesk/rustdesk-server:latest
+    command: hbbr
+    volumes:
+      - ./data:/root
+    ports:
+      - "21117:21117"
+      - "21119:21119"
+    restart: unless-stopped
+
+  portal:
+    image: python:3.12-alpine
+    command: python /app/server.py
+    working_dir: /app
+    environment:
+      RUSTDESK_HOST: ${RUSTDESK_HOST}
+      RUSTDESK_KEY: ${RUSTDESK_KEY:-}
+      RUSTDESK_API: ${RUSTDESK_API:-}
+      RUSTDESK_EXE_URL: ${RUSTDESK_EXE_URL:-}
+      EXE_PREFIX: ${EXE_PREFIX:-rustdesk}
+      COMPANY_NAME: ${COMPANY_NAME:-고객지원센터}
+      SUPPORT_PHONE: ${SUPPORT_PHONE:-}
+      SUPPORT_HOURS: ${SUPPORT_HOURS:-평일 09:00 ~ 18:00}
+      FILES_DIR: /files
+    volumes:
+      - ./portal:/app:ro
+      - ./files:/files
+      - ./data:/rustdesk-data:ro
+    depends_on:
+      - hbbs
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    environment:
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - portal
+    restart: unless-stopped
+
+  guacd:
+    profiles: ["guacamole"]
+    image: guacamole/guacd:1.5.5
+    restart: unless-stopped
+
+  guacamole:
+    profiles: ["guacamole"]
+    image: guacamole/guacamole:1.5.5
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACAMOLE_HOME: /guacamole-home
+    volumes:
+      - ./guacamole:/guacamole-home:ro
+    depends_on:
+      - guacd
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
